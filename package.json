@@ -17,11 +17,13 @@
   },
   "dependencies": {
     "express": "4.15.3",
-    "multer": "1.3.0",
     "express-handlebars": "3.0.0"
   },
   "config": {
-    "port": 9812
+    "port": 9801,
+    "static_folder": "views/static",
+    "base_url": "/chrome_push_notification",
+    "notification_icon": "https://assets-cdn.github.com/favicon.ico"
   },
   "homepage": "https://github.com/dptole/chrome-push-notification#readme"
 }

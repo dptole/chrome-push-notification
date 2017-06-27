@@ -1,3 +1,199 @@
 <script type="text/javascript">
-console.log('javascript ready')
+!function() {
+  !function() {
+    function cpnError(code) {
+      return code === 1
+        ? {
+            code: code,
+            message: 'The service worker is not supported on this browser.'
+          }
+        : code === 2
+        ? {
+            code: code,
+            message: 'The notification api is not available on this browser.'
+          }
+        : code === 3
+        ? {
+            code: code,
+            message: 'The push manager api is not available on this browser.'
+          }
+        : code === 4
+        ? {
+            code: code,
+            message: 'The service worker api is not available on this browser.'
+          }
+        : code === 5
+        ? {
+            code: code,
+            message: 'Only google chrome is supported.'
+          }
+        : code === 6
+        ? {
+            code: code,
+            message: 'The promise api is not available on this browser.'
+          }
+        : {
+            code: -1,
+            message: 'Unknown error code: ' + code
+          }
+    }
+
+    function cpnCheckSupport() {
+      if(!('serviceWorker' in navigator))
+        throw new Error(JSON.stringify(cpnError(1)))
+
+      if(!('Notification' in window))
+        throw new Error(JSON.stringify(cpnError(2)))
+
+      if(!('PushManager' in window))
+        throw new Error(JSON.stringify(cpnError(3)))
+
+      if(!('ServiceWorkerRegistration' in window && 'showNotification' in ServiceWorkerRegistration.prototype))
+        throw new Error(JSON.stringify(cpnError(4)))
+
+      if(!('chrome' in window))
+        throw new Error(JSON.stringify(cpnError(5)))
+
+      if(!('Promise' in window))
+        throw new Error(JSON.stringify(cpnError(6)))
+    }
+
+    function cpnGetSubscription(service_worker_path) {
+      return function(options) {
+        return navigator.serviceWorker.getRegistration(service_worker_path).then(function(sw_registration) {
+          return sw_registration
+            ? sw_registration.pushManager.getSubscription(options).then(cpnCreateSubscriptionObject(sw_registration))
+            : Promise.reject()
+        })
+      }
+    }
+
+    function cpnCreateSubscriptionObject(sw_registration) {
+      return function(subscription) {
+        return {
+          subscription: subscription,
+          sw_registration: sw_registration
+        }
+      }
+    }
+
+    function cpnSubscribe(service_worker_path) {
+      return function(options) {
+        return navigator.serviceWorker.register(service_worker_path).then(function() {
+          return navigator.serviceWorker.ready
+        }).then(function(sw_registration) {
+          return sw_registration.pushManager.subscribe(options).then(cpnCreateSubscriptionObject(sw_registration))
+        })
+      }
+    }
+
+    function cpnGetPermissionState(service_worker_path) {
+      return function() {
+        return Notification.permission
+      }
+    }
+
+    function cpnCanNotify(service_worker_path) {
+      return function() {
+        return this.getPermissionState() === 'granted'
+          ? this.getSubscription()
+          : Promise.reject
+      }
+    }
+
+    window.CPN = function CPN(service_worker_path) {
+      cpnCheckSupport()
+
+      if(!(this instanceof CPN))
+        return new CPN(service_worker_path)
+
+      this.getPermissionState = cpnGetPermissionState(service_worker_path)
+      this.subscribe = cpnSubscribe(service_worker_path)
+      this.getSubscription = cpnGetSubscription(service_worker_path)
+      this.canNotify = cpnCanNotify(service_worker_path)
+    }
+  }()
+
+  function createNotification(sw_registration, title, options) {
+    sw_registration.showNotification(title, options)
+  }
+
+  function createButtonSubscribeEvent(button) {
+    return function(event) {
+      return cpn.subscribe(subscription_options).then(function(response) {
+        createNotification(response.sw_registration, 'Welcome', {
+          body: 'Welcome',
+          icon: '{{ notification_icon }}'
+        })
+
+        button.classList.remove('disabled')
+
+        return response
+      }).catch(function(error) {
+        console.log('error', error)
+        button.classList.remove('disabled')
+      })
+    }
+  }
+
+  function createButtonNotifyEvent(button) {
+    return function(event) {
+      return cpn.getSubscription(subscription_options).then(function(response) {
+        fetch('{{ push_notification_url }}', {
+          method: 'post',
+          body: JSON.stringify({subscriptionId: response.subscription.endpoint.match(/.*?([^/]+)$/) && RegExp.$1}),
+          headers: {
+            'content-type': 'application/json'
+          }
+        })
+
+        return createNotification(response.sw_registration, 'Hello', {
+          body: 'This is a sample notification',
+          icon: '{{ notification_icon }}'
+        })
+      }).catch(function(error) {
+        console.log('error', error)
+        return Promise.reject()
+      })
+    }
+  }
+
+  function configureButtonText(button) {
+    return cpn.canNotify().then(function() {
+      button.textContent = 'Notify'
+    }, function() {
+      button.textContent = 'Subscribe'
+    })
+  }
+
+  window.onload = function() {
+    subscribe_button = document.querySelector('.cpn-subscribe-button')
+    if(!subscribe_button)
+      return console.warn('The subscribe button was not found.')
+
+    subscribe_button.classList.remove('disabled')
+    configureButtonText(subscribe_button)
+
+    subscribe_button.addEventListener('click', function(event) {
+      subscribe_button.classList.add('disabled');
+
+      cpn.canNotify().then(function() {
+        return createButtonNotifyEvent(subscribe_button)(event)
+      }, function() {
+        return createButtonSubscribeEvent(subscribe_button)(event)
+      }).catch(function(error) {
+        console.error('Error', error)
+      }).then(function() {
+        subscribe_button.classList.remove('disabled')
+        configureButtonText(subscribe_button)
+      })
+    })
+  }
+
+  var subscribe_button = document.querySelector('.cpn-subscribe-button')
+    , cpn = new CPN('{{ service_worker_url }}')
+    , subscription_options = {
+        userVisibleOnly: true
+      }
+}()
 </script>
