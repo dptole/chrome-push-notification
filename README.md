@@ -11,6 +11,8 @@ Click [here][gc-project] to create your project. The important bit here is the `
 Get your api key
 ================
 
+Import your recently created project to the firebase google console.
+
 Click [here][fc-project] to open the console where you should be able to get your api key.
 
 > Replace the URL so it looks like this https://console.firebase.google.com/project/NAME_OF_YOUR_PROJECT/settings/cloudmessaging/?hl=en
