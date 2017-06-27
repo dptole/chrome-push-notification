@@ -22,7 +22,7 @@
   "config": {
     "port": 9801,
     "static_folder": "views/static",
-    "base_url": "/chrome_push_notification",
+    "base_url": "/chrome_push_notification/",
     "notification_icon": "https://assets-cdn.github.com/favicon.ico"
   },
   "homepage": "https://github.com/dptole/chrome-push-notification#readme"
