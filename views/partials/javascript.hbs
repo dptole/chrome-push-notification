@@ -97,7 +97,7 @@
       return function() {
         return this.getPermissionState() === 'granted'
           ? this.getSubscription()
-          : Promise.reject
+          : Promise.reject()
       }
     }
 
