@@ -79,6 +79,7 @@ app.use((request, response, next) => {
       request.raw = data
       try {
         request.json = JSON.parse(data)
+        console.log(JSON.stringify(request.json, 0, 2))
       } catch(error) {
         console.error('It was not possible to parse the request body as JSON')
         console.error('The payload is: ' + data)
