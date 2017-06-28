@@ -178,6 +178,14 @@
     if(!subscribe_button)
       return console.warn('The subscribe button was not found.')
 
+    try {
+      cpn = new CPN('{{ service_worker_url }}')
+    } catch(error) {
+      console.warn(error);
+      subscribe_button.textContent = 'Error: ' + error.message;
+      return;
+    }
+
     subscribe_button.classList.remove('disabled')
     configureButtonText(subscribe_button)
 
@@ -198,7 +206,7 @@
   }
 
   var subscribe_button = document.querySelector('.cpn-subscribe-button')
-    , cpn = new CPN('{{ service_worker_url }}')
+    , cpn
     , subscription_options = {
         userVisibleOnly: true
       }
