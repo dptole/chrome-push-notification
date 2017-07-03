@@ -10,6 +10,7 @@ const package = require('./package.json')
     , cpn_notify_via_server_url = path.join(cpn_root_url, 'notify')
     , port = package.config.port
     , service_worker_path = path.join(cpn_root_url, 'sw.js')
+    , _service_worker_path = path.join(cpn_root_url, '*.js')
     , manifest_json_path = path.join(cpn_root_url, 'manifest.json')
     , static_middleware_path = path.join(__dirname, package.config.static_folder)
     , static_middleware = express.static(static_middleware_path)
@@ -67,19 +68,21 @@ app.engine('hbs', handlebarsExpress({
 app.set('view engine', 'hbs')
 
 app.use((request, response, next) => {
-  console.log(request.method, request.url)
+  response.on('finish', _ => {
+    console.log(response.statusCode, request.method, request.url, request.headers && request.headers['user-agent'] || '<unknown user-agent>')
+    console.log('Request JSON', request.json || '')
+  })
   next()
 })
 
 app.use((request, response, next) => {
-  if(request.method === 'POST') {
-    let data = ''
+  let data = request.raw = ''
+  if(/^post|put$/i.test(request.method)) {
     request.on('data', buffer => data += buffer)
     request.on('end', _ => {
       request.raw = data
       try {
         request.json = JSON.parse(data)
-        console.log(JSON.stringify(request.json, 0, 2))
       } catch(error) {
         console.error('It was not possible to parse the request body as JSON')
         console.error('The payload is: ' + data)
@@ -91,7 +94,10 @@ app.use((request, response, next) => {
     next()
 })
 
-app.get([service_worker_path], static_middleware)
+app.get([_service_worker_path], (request, response, next) => {
+  request.url = service_worker_path
+  static_middleware(request, response, next)
+})
 app.get(manifest_json_path, (request, response) =>
   response
     .header('content-type', 'application/manifest+json')
@@ -100,7 +106,7 @@ app.get(manifest_json_path, (request, response) =>
 
 app.get(cpn_root_url, (request, response) =>
   response.render('home', {
-    service_worker_url: service_worker_path,
+    service_worker_url: service_worker_path.replace('sw.js', 'sw-' + (+new Date) + '.js'),
     notification_icon: package.config.notification_icon,
     push_notification_url: cpn_notify_via_server_url
   })
