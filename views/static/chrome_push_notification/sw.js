@@ -29,7 +29,7 @@ self.addEventListener('notificationclick', function(event) {
       }).then(function(response) {
         if(response.status !== 202)
           return self.registration.showNotification('Ops!', {
-            body: 'We are running out of ' + product + ' at the moment! Do you want to ask something else?',
+            body: 'Our waiter is busy at the moment, wait a little bit please.',
             icon: 'https://assets-cdn.github.com/favicon.ico'
           });
         orders[subscription.endpoint] = product;
