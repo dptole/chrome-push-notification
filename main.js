@@ -31,15 +31,21 @@ function notifyUser() {
         }
       }, response => {
         user_to_notify = null
-        if(response.statusCode === 200) {
-          let data = ''
-          response.on('data', buffer => data += buffer)
-          response.on('end', _ => {
-            response.body = data
-            resolve(response)
-          })
-        } else
-          reject(response)
+        let data = ''
+        response.setEncoding('binary')
+        response.on('data', buffer => data += buffer)
+        response.on('end', _ => {
+          const response_object = {
+            statusCode: response.statusCode,
+            headers: response.headers,
+            data: data
+          }
+
+          if(response.statusCode === 200)
+            resolve(response_object)
+          else
+            reject(response_object)
+        })
       })
       request.end(
         JSON.stringify({
@@ -69,8 +75,10 @@ app.set('view engine', 'hbs')
 
 app.use((request, response, next) => {
   response.on('finish', _ => {
-    console.log(response.statusCode, request.method, request.url, request.headers && request.headers['user-agent'] || '<unknown user-agent>')
+    console.log((new Date).toJSON())
+    console.log(response.statusCode, request.method, request.url, request.headers)
     console.log('Request JSON', request.json || '')
+    console.log('='.repeat(100))
   })
   next()
 })
@@ -119,7 +127,15 @@ app.post(cpn_notify_via_server_url, (request, response) => {
 
   if(request.json && request.json.subscriptionId && typeof(request.json.subscriptionId) === 'string' && request.json.subscriptionId.length > 0 && user_to_notify === null) {
     user_to_notify = request.json.subscriptionId
-    notifyUser()
+    console.log((new Date).toJSON())
+    console.log('Notification', 'SubscriptionId', user_to_notify)
+    notifyUser().then(response => {
+      console.log((new Date).toJSON())
+      console.log('Notification', 'Success', response)
+    }).catch(error => {
+      console.log((new Date).toJSON())
+      console.log('Notification', 'Error', error)
+    })
     response.status(202).json({success: 'You will be notified in a while.'})
   } else if(user_to_notify !== null)
     response.status(503).json({error: 'Try again later.'})
