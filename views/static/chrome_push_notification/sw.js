@@ -22,7 +22,7 @@ self.addEventListener('notificationclick', function(event) {
     self.registration.pushManager.getSubscription().then(function(subscription) {
       return fetch('https://dptole.ngrok.io/chrome_push_notification/notify', {
         method: 'post',
-        body: JSON.stringify({subscriptionId: subscription.endpoint.match(/.*?([^/]+)$/) && RegExp.$1}),
+        body: JSON.stringify({endpoint: subscription.endpoint}),
         headers: {
           'content-type': 'application/json'
         }
