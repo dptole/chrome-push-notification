@@ -17,7 +17,7 @@ addEventListener('notificationclick', event => {
   event.notification.close()
   if(isValidAction(event.action))
     runNotificationAction(parseJSON(event.action).parsed)
-  if(isValidAction(event.notification.tag))
+  else if(isValidAction(event.notification.tag))
     runNotificationAction(parseJSON(event.notification.tag).parsed)
 })
 
@@ -43,17 +43,19 @@ function displayNotification(notification) {
     const article = parseJSON(notification.article)
     if(!article.success) return false
     registration.showNotification(
-      article.parsed.title,
+      article.parsed.source,
       {
-        body: article.parsed.description,
+        body: [article.parsed.title, article.parsed.description].join(' | '),
         icon: ensureURL(article.parsed.urlToImage),
         tag: JSON.stringify({type: 'read-news', url: article.parsed.url}),
         actions: [{
           title: 'Read',
-          action: JSON.stringify({type: 'read-news', url: article.parsed.url})
+          action: JSON.stringify({type: 'read-news', url: article.parsed.url}),
+            icon: 'https://cdn0.iconfinder.com/data/icons/solid-line-essential-ui-icon-set/512/essential_set_menu-32.png'
         }, {
           title: 'Next',
-          action: JSON.stringify({type: 'next-news'})
+          action: JSON.stringify({type: 'next-news'}),
+          icon: 'https://cdn3.iconfinder.com/data/icons/google-material-design-icons/48/ic_arrow_forward_48px-32.png'
         }]
       }
     )

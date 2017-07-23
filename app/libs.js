@@ -67,25 +67,6 @@ module.exports = app => {
         request.end(json && JSON.stringify(json) || '')
       })
     },
-    sanitizeGoogleNewsJSON(json) {
-      return json &&
-        json.status === 'ok' &&
-        util.isArray(json.articles) &&
-        json.articles.length > 0 &&
-        json.articles.filter(libs.sanitizeValidGoogleNewsArticle) ||
-        []
-    },
-    sanitizeValidGoogleNewsArticle(article) {
-      return article &&
-        util.isString(article.title) &&
-        util.isString(article.description) &&
-        util.isString(article.url) &&
-        /^https?:\/\/[^/]+/.test(article.url) &&
-        util.isString(article.urlToImage) &&
-        /^https?:\/\/[^/]+/.test(article.urlToImage) &&
-        util.isString(article.publishedAt) &&
-        /^\d{4}\-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(article.publishedAt)
-    },
     news: {
       articles: [],
       get sources() {
@@ -97,10 +78,10 @@ module.exports = app => {
           : libs.request(
               'get',
               'newsapi.org',
-              `/v1/articles?source=${libs.news.getNextSource()}&sortBy=top&apiKey=${app.env.google_news_api_key}`
+              `/v1/articles?source=${libs.news.getNextSource()}&apiKey=${app.env.google_news_api_key}`
             ).then(response => {
-              libs.news.articles.push.apply(libs.news.articles, response.json.articles)
-              return response
+              libs.news.articles.push.apply(libs.news.articles, response.json.articles.map(article => util._extend(article, {source: response.json.source[0].toUpperCase() + response.json.source.substr(1).replace(/-/g, ' ')})))
+              return {json: {articles: [libs.news.articles.pop()]}}
             }).catch(error => {
               libs.log(error)
               return {json: {articles: []}}
@@ -131,60 +112,17 @@ module.exports = app => {
     },
     gcm: {
       notifyUser(options) {
-        return new Promise((resolve, reject) => {
-          let subscription_id
-            , response_object = {
-                statusCode: null,
-                headers: null,
-                data: null,
-                error: null
-              }
-
-          if(util.isString(options.endpoint))
-            subscription_id = options.endpoint.match(/.*?([^/]+)$/) && RegExp.$1
-          else
-            return reject(
-              util._extend(response_object, {
-                error: 'Invalid subscriptionId.'
-              })
-            )
-
-          const request = https.request({
-            method: 'POST',
-            hostname: 'android.googleapis.com',
-            path: '/gcm/send',
-            headers: {
-              Authorization: 'key=' + app.env.api_key,
-              'Content-Type': 'application/json'
-            }
-          }, response => {
-            let data = ''
-            response.setEncoding('binary')
-            response.on('data', buffer => data += buffer)
-            response.on('end', _ => {
-              util._extend(response_object, {
-                statusCode: response.statusCode,
-                headers: response.headers,
-                data
-              })
-
-              if(199 < response.statusCode && response.statusCode < 300)
-                resolve(response_object)
-              else
-                reject(response_object)
-            })
-          })
-          request.on('error', error =>
-            reject(util._extend(response_object, {
-              error
-            }))
-          )
-          request.end(
-            JSON.stringify({
-              registration_ids: [subscription_id]
-            })
-          )
-        })
+        return libs.request(
+          'post',
+          'android.googleapis.com',
+          '/gcm/send',
+          {
+            registration_ids: [options.endpoint.match(/.*?([^/]+)$/) && RegExp.$1]
+          }, {
+            Authorization: 'key=' + app.env.api_key,
+            'Content-Type': 'application/json'
+          }
+        )
       }
     }
   })
