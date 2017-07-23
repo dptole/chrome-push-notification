@@ -41,9 +41,9 @@ function displayNotification(notification) {
     const article = parseJSON(notification.article)
     if(!article.success) return false
     registration.showNotification(
-      decodeURIComponent(escape(article.parsed.title)),
+      article.parsed.title,
       {
-        body: decodeURIComponent(escape(article.parsed.description)),
+        body: article.parsed.description,
         icon: ensureURL(article.parsed.urlToImage),
         actions: [{
           title: 'Read',
