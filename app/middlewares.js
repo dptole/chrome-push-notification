@@ -9,10 +9,10 @@ module.exports = app => {
 
   app.server.use((request, response, next) => {
     response.on('finish', _ => {
-      console.log((new Date).toJSON())
-      console.log(response.statusCode, request.method, request.url, request.headers)
-      console.log('Request JSON', request.json || '')
-      console.log('='.repeat(100))
+      app.libs.log(
+        response.statusCode, request.method, request.url, request.headers,
+        'Request JSON', request.json || '',
+      )
     })
     next()
   })
@@ -24,13 +24,8 @@ module.exports = app => {
     request.on('end', _ => {
       request.payload = data
       try {
-        if(data.length)
-          request.json = JSON.parse(data)
-      } catch(error) {
-        console.error('It was not possible to parse the request body as JSON')
-        console.error('The payload is: ' + data)
-        console.error(error)
-      }
+        request.json = JSON.parse(data)
+      } catch(error) {}
       next()
     })
   })

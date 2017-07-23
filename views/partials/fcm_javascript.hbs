@@ -1,0 +1,102 @@
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script type="text/javascript" src="https://getbootstrap.com/dist/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="https://www.gstatic.com/firebasejs/3.9.0/firebase-app.js"></script>
+<script type="text/javascript" src="https://www.gstatic.com/firebasejs/3.9.0/firebase-messaging.js"></script>
+
+<script type="text/javascript">
+var service_worker_path = '/chrome_push_notification/fcm/sw.js'
+  , cpn_notify_button = $('.cpn-notify-button')
+  , firebase_config = {
+      apiKey: 'AAAAUP0jK_k:APA91bEcrnG850PQpqJO0qoGR_HrE0fsrWv2EOkvJlIhSzlcsQ9JOIfu7ADL2_pMsQIw7gIU18tzX0u-ZBoTbUR3IMrVag0AUJOsnN4bLSm09lZHcI5CiRAXfni1La6lJTQlMwy7xBtr',
+      messagingSenderId: '347844324345'
+    }
+;
+
+firebase.initializeApp(firebase_config);
+var messaging = firebase.messaging();
+
+function registerServiceWorker(path) {
+  return navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    var registered_sw = registrations.filter(function(registration) {
+      return registration.active.scriptURL.endsWith(service_worker_path);
+    });
+
+    if(registered_sw.length > 0)
+      return registered_sw[0];
+    else
+      return navigator.serviceWorker.register(service_worker_path);
+  });
+}
+
+function ensureURL(url) {
+  return /^https?:\/\//i.test(url) ? url : 'https://firebase.google.com/_static/images/firebase/touchicon-180.png';
+}
+
+function getRegistration() {
+  return registerServiceWorker(service_worker_path);
+}
+
+function displayNotification(notification, registration) {
+  if(notification.type === 'article') {
+    const article = parseJSON(notification.article)
+    if(article.success) {
+      registration.showNotification(
+        decodeURIComponent(escape(article.parsed.title)),
+        {
+          body: decodeURIComponent(escape(article.parsed.description)),
+          icon: ensureURL(article.parsed.urlToImage),
+          actions: [{
+            title: 'Read',
+            action: JSON.stringify({type: 'read-news', url: article.parsed.url})
+          }, {
+            title: 'Next',
+            action: JSON.stringify({type: 'next-news'})
+          }]
+        }
+      )
+    }
+  }
+}
+
+function parseJSON(json_string) {
+  try {
+    return {
+      success: true,
+      parsed: JSON.parse(json_string)
+    }
+  } catch(error) {
+    return {
+      error
+    }
+  }
+}
+
+messaging.requestPermission().then(function() {
+  return getRegistration();
+}).then(function(service_worker) {
+  return messaging.useServiceWorker(service_worker);
+}).then(function() {
+  return messaging.getToken();
+}).then(function(token) {
+  cpn_notify_button.text('Get news').removeClass('disabled');
+
+  cpn_notify_button.on('click', function() {
+    cpn_notify_button.text('Loading...').addClass('disabled');
+
+    fetch('https://dptole.ngrok.io/chrome_push_notification/get_news?token=' + token).then(function() {
+      cpn_notify_button.text('Get news').removeClass('disabled');
+    });
+  });
+  
+  messaging.onMessage(function(payload) {
+    getRegistration().then(function(registration) {
+      if(payload.data)
+        displayNotification(payload.data, registration)
+    })
+  });
+}).catch(function(error) {
+  cpn_notify_button.text(error.message);
+  console.log('An error occurred');
+  console.log(error);
+});
+</script>

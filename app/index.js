@@ -17,9 +17,8 @@ module.exports = express => {
     }
   })
 
-  app.libs = require('./libs.js')(app)
-
   require('./configs.js')(app)
+  app.libs = require('./libs.js')(app)
   require('./middlewares.js')(app)
   require('./routes.js')(app)
 

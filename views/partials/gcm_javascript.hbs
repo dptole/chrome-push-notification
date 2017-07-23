@@ -131,7 +131,7 @@
         $('<link>')
           .attr({
             rel: 'manifest',
-            href: '/chrome_push_notification/manifest.json'
+            href: '/chrome_push_notification/gcm/manifest.json'
           })
           .appendTo('head')
       return cpn.subscribe(subscription_options).then(function(response) {
