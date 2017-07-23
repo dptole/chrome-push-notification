@@ -6,6 +6,7 @@
 <script type="text/javascript">
 var service_worker_path = '/chrome_push_notification/fcm/sw.js'
   , cpn_notify_button = $('.cpn-notify-button')
+  , error_message = $('.cpn-error-message')
   , firebase_config = {
       apiKey: 'AAAAUP0jK_k:APA91bEcrnG850PQpqJO0qoGR_HrE0fsrWv2EOkvJlIhSzlcsQ9JOIfu7ADL2_pMsQIw7gIU18tzX0u-ZBoTbUR3IMrVag0AUJOsnN4bLSm09lZHcI5CiRAXfni1La6lJTQlMwy7xBtr',
       messagingSenderId: '347844324345'
@@ -45,6 +46,7 @@ function displayNotification(notification, registration) {
         {
           body: article.parsed.description,
           icon: ensureURL(article.parsed.urlToImage),
+          tag: JSON.stringify({type: 'read-news', url: article.parsed.url}),
           actions: [{
             title: 'Read',
             action: JSON.stringify({type: 'read-news', url: article.parsed.url})
@@ -95,7 +97,11 @@ messaging.requestPermission().then(function() {
     })
   });
 }).catch(function(error) {
-  cpn_notify_button.text(error.message);
+  error_message
+    .append($('<div>').append('An error occurred.'))
+    .append($('<div>').append(error.message))
+  ;
+  cpn_notify_button.remove();
   console.log('An error occurred');
   console.log(error);
 });

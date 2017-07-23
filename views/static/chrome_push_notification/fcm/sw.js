@@ -17,6 +17,8 @@ addEventListener('notificationclick', event => {
   event.notification.close()
   if(isValidAction(event.action))
     runNotificationAction(parseJSON(event.action).parsed)
+  if(isValidAction(event.notification.tag))
+    runNotificationAction(parseJSON(event.notification.tag).parsed)
 })
 
 function runNotificationAction(action) {
@@ -45,6 +47,7 @@ function displayNotification(notification) {
       {
         body: article.parsed.description,
         icon: ensureURL(article.parsed.urlToImage),
+        tag: JSON.stringify({type: 'read-news', url: article.parsed.url}),
         actions: [{
           title: 'Read',
           action: JSON.stringify({type: 'read-news', url: article.parsed.url})
