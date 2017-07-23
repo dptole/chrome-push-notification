@@ -19,10 +19,17 @@ Click [here][fc-project] to open the console where you should be able to get you
 
 The `api_key` is named `Server key` (which is the longer one) and the `sender_id` is named `Sender ID`, easy peasy lemon squeezy.
 
+Get the google news api key
+===========================
+
+Just create your account and grab the generated API key.
+
+[News API documentation][gnews-documentation]
+
 Create your `env.json`
 ======================
 
-Copy the file `env.example.json` renaming it to `env.json`. Replace the fields `gcm_sender_id` and `api_key` with the information found on the previous steps.
+Copy the file `env.example.json` renaming it to `env.json`. Replace the fields `gcm_sender_id`, `google_news_api_key` and `api_key` with the information found on the previous steps.
 
 Demo
 ====
@@ -35,3 +42,5 @@ Click the image below.
 [ngrok-image]: https://ngrok.com/static/img/demo.png
 [gc-project]: https://console.cloud.google.com/projectcreate?previousPage=%2Fprojectselector%2Fiam-admin%2Fsettings&organizationId=0
 [fc-project]: https://console.firebase.google.com/project/
+[gnews-documentation]: https://newsapi.org/#documentation
+[gnews-login]: https://newsapi.org/login
