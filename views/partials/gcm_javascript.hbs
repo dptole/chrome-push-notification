@@ -180,7 +180,6 @@
   }
 
   window.onload = function() {
-    subscribe_button = document.querySelector('.cpn-subscribe-button')
     if(!subscribe_button)
       return console.warn('The subscribe button was not found.')
 
@@ -188,7 +187,8 @@
       cpn = new CPN('{{ service_worker_url }}')
     } catch(error) {
       console.warn(error);
-      subscribe_button.textContent = 'Error: ' + error.message;
+      subscribe_button.parentNode.removeChild(subscribe_button);
+      cpn_error_message.textContent = JSON.parse(error.message).message
       return;
     }
 
@@ -212,6 +212,7 @@
   }
 
   var subscribe_button = document.querySelector('.cpn-subscribe-button')
+    , cpn_error_message = document.querySelector('.cpn-error-message')
     , cpn
     , subscription_options = {
         userVisibleOnly: true
