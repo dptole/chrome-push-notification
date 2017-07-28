@@ -41,7 +41,7 @@ const libs = {
         message.parsed.title,
         {
           body: message.parsed.body,
-          icon: message.parsed.icon,
+          icon: message.parsed.icon_uri,
           tag: message.parsed.tag
         }
       )

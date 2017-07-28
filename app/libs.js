@@ -107,7 +107,8 @@ module.exports = app => {
                   notification: {
                     title: string,
                     body: string,
-                    tag: string
+                    tag: string,
+                    icon_uri: string
                   },
                   click_action: url (optional)
                 
