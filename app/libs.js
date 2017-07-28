@@ -100,6 +100,29 @@ module.exports = app => {
           {
             registration_ids: [token],
             data: {
+              /*
+                Default notification with optional click action:
+                
+                  type: 'notification',
+                  notification: {
+                    title: string,
+                    body: string,
+                    tag: string
+                  },
+                  click_action: url (optional)
+                
+                Article notification
+                
+                  type: 'article',
+                  article: {
+                    source: string,
+                    title: string,
+                    description: string,
+                    urlToImage: url,
+                    url: url
+                  }
+              */
+              
               type: 'article',
               article
             }

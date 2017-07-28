@@ -9,8 +9,10 @@ firebase.initializeApp({
 const messaging = firebase.messaging()
 
 const libs = {
+  httpsRegex: /^https:\/\//i,
+  last_event: null,
   ensureHTTPSURL(url) {
-    return /^https:\/\//i.test(url) ? url : 'https://firebase.google.com/_static/images/firebase/touchicon-180.png'
+    return libs.httpsRegex.test(url) ? url : 'https://firebase.google.com/_static/images/firebase/touchicon-180.png'
   },
   isValidAction(action) {
     return libs.parseJSON(action).success
@@ -28,32 +30,57 @@ const libs = {
     }
   },
   displayNotification(notification) {
-    if(notification.type === 'article') {
+    if(notification.type === 'notification') {
+      const message = libs.parseJSON(notification.notification)
+      if(!message.success) {
+        console.log('Unable to parse notifications data', notification)
+        return libs.noNotification()
+      }
+
+      return registration.showNotification(
+        message.parsed.title,
+        {
+          body: message.parsed.body,
+          icon: message.parsed.icon,
+          tag: message.parsed.tag
+        }
+      )
+    } else if(notification.type === 'article') {
       const article = libs.parseJSON(notification.article)
-      if(article.success)
-        return registration.showNotification(
-          article.parsed.source,
-          {
-            body: [article.parsed.title, article.parsed.description].join(' | '),
-            icon: libs.ensureHTTPSURL(article.parsed.urlToImage),
-            tag: JSON.stringify({type: 'read-news', url: article.parsed.url}),
-            actions: [{
-              title: 'Read',
-              action: JSON.stringify({type: 'read-news', url: article.parsed.url}),
-              icon: 'https://cdn0.iconfinder.com/data/icons/solid-line-essential-ui-icon-set/512/essential_set_menu-32.png'
-            }, {
-              title: 'Next',
-              action: JSON.stringify({type: 'next-news'}),
-              icon: 'https://cdn3.iconfinder.com/data/icons/google-material-design-icons/48/ic_arrow_forward_48px-32.png'
-            }]
-          }
-        )
+      if(!article.success) {
+        console.log('Unable to parse notifications data', notification)
+        return libs.noNotification()
+      }
+
+      return registration.showNotification(
+        article.parsed.source,
+        {
+          body: [article.parsed.title, article.parsed.description].filter(id => id).join(' | '),
+          icon: libs.ensureHTTPSURL(article.parsed.urlToImage),
+          tag: JSON.stringify({type: 'read-news', url: article.parsed.url}),
+          actions: [{
+            title: 'Read',
+            action: JSON.stringify({type: 'read-news', url: article.parsed.url}),
+            icon: 'https://cdn0.iconfinder.com/data/icons/solid-line-essential-ui-icon-set/512/essential_set_menu-32.png'
+          }, {
+            title: 'Next',
+            action: JSON.stringify({type: 'next-news'}),
+            icon: 'https://cdn3.iconfinder.com/data/icons/google-material-design-icons/48/ic_arrow_forward_48px-32.png'
+          }]
+        }
+      )
     }
+
+    console.log('Unknown notification type', notification)
+    return libs.noNotification()
   },
   handleNotification(payload) {
-    return payload.data
+    return payload && payload.data
       ? libs.displayNotification(payload.data)
-      : registration.showNotification()
+      : libs.noNotification().catch(_ => console.log('Unable to handle notifications payload', payload))
+  },
+  noNotification() {
+    return registration.showNotification()
   },
   runNotificationAction(action) {
     if(action.type === 'read-news')
@@ -62,9 +89,25 @@ const libs = {
       messaging.getToken().then(token =>
         fetch('https://dptole.ngrok.io/chrome_push_notification/get_news?token=' + token)
       )
+    else if(action.type === 'click-action')
+      clients.openWindow(action.url)
+  },
+  hasCurrentEventClickAction() {
+    if(!(libs.last_event && libs.last_event.data))
+      return false
+    const json = libs.last_event.data.json()
+    return json && json.data && libs.httpsRegex.test(json.data.click_action)
+  },
+  getCurrentEventClickAction() {
+    if(!(libs.last_event && libs.last_event.data))
+      return ''
+    const json = libs.last_event.data.json()
+    return json && json.data && libs.httpsRegex.test(json.data.click_action) && json.data.click_action
   },
   eventHandlers: {
     push(event) {
+      libs.last_event = event
+      console.log('push event', event)
       event.waitUntil(
         libs.handleNotification(event.data.json()).catch(error => {
           console.log('Error handling the notification')
@@ -75,11 +118,14 @@ const libs = {
       )
     },
     notificationClick(event) {
+      console.log('notificationClick event', event)
       event.notification.close()
       if(libs.isValidAction(event.action))
         libs.runNotificationAction(libs.parseJSON(event.action).parsed)
       else if(libs.isValidAction(event.notification.tag))
         libs.runNotificationAction(libs.parseJSON(event.notification.tag).parsed)
+      else if(libs.hasCurrentEventClickAction())
+        libs.runNotificationAction({type: 'click-action', url: libs.getCurrentEventClickAction()})
     }
   }
 }
