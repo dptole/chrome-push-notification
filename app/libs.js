@@ -123,7 +123,7 @@ module.exports = app => {
                     url: url
                   }
               */
-              
+
               type: 'article',
               article
             }

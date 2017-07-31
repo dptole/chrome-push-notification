@@ -10,7 +10,8 @@ const messaging = firebase.messaging()
 
 const libs = {
   httpsRegex: /^https:\/\//i,
-  last_event: null,
+  last_push_event: null,
+  last_notificationclick_event: null,
   ensureHTTPSURL(url) {
     return libs.httpsRegex.test(url) ? url : 'https://firebase.google.com/_static/images/firebase/touchicon-180.png'
   },
@@ -74,7 +75,7 @@ const libs = {
     console.log('Unknown notification type', notification)
     return libs.noNotification()
   },
-  handleNotification(payload) {
+  receiveNotificationBehavior(payload) {
     return payload && payload.data
       ? libs.displayNotification(payload.data)
       : libs.noNotification().catch(_ => console.log('Unable to handle notifications payload', payload))
@@ -82,7 +83,7 @@ const libs = {
   noNotification() {
     return registration.showNotification()
   },
-  runNotificationAction(action) {
+  notificationClickBehavior(action) {
     if(action.type === 'read-news')
       clients.openWindow(action.url)
     else if(action.type === 'next-news')
@@ -93,23 +94,24 @@ const libs = {
       clients.openWindow(action.url)
   },
   hasCurrentEventClickAction() {
-    if(!(libs.last_event && libs.last_event.data))
+    if(!(libs.last_push_event && libs.last_push_event.data))
       return false
-    const json = libs.last_event.data.json()
+    const json = libs.last_push_event.data.json()
     return json && json.data && libs.httpsRegex.test(json.data.click_action)
   },
   getCurrentEventClickAction() {
-    if(!(libs.last_event && libs.last_event.data))
+    if(!(libs.last_push_event && libs.last_push_event.data))
       return ''
-    const json = libs.last_event.data.json()
+    const json = libs.last_push_event.data.json()
     return json && json.data && libs.httpsRegex.test(json.data.click_action) && json.data.click_action
   },
-  eventHandlers: {
+  event_handlers: {
     push(event) {
-      libs.last_event = event
+      //@TODO notify server that the message was received.
+      libs.last_push_event = event
       console.log('push event', event)
       event.waitUntil(
-        libs.handleNotification(event.data.json()).catch(error => {
+        libs.receiveNotificationBehavior(event.data.json()).catch(error => {
           console.log('Error handling the notification')
           console.log(error)
           console.log('Event')
@@ -118,17 +120,19 @@ const libs = {
       )
     },
     notificationClick(event) {
+      //@TODO notify server that the notification was clicked.
+      libs.last_notificationclick_event = event
       console.log('notificationClick event', event)
       event.notification.close()
       if(libs.isValidAction(event.action))
-        libs.runNotificationAction(libs.parseJSON(event.action).parsed)
+        libs.notificationClickBehavior(libs.parseJSON(event.action).parsed)
       else if(libs.isValidAction(event.notification.tag))
-        libs.runNotificationAction(libs.parseJSON(event.notification.tag).parsed)
+        libs.notificationClickBehavior(libs.parseJSON(event.notification.tag).parsed)
       else if(libs.hasCurrentEventClickAction())
-        libs.runNotificationAction({type: 'click-action', url: libs.getCurrentEventClickAction()})
+        libs.notificationClickBehavior({type: 'click-action', url: libs.getCurrentEventClickAction()})
     }
   }
 }
 
-addEventListener('push', libs.eventHandlers.push)
-addEventListener('notificationclick', libs.eventHandlers.notificationClick)
+addEventListener('push', libs.event_handlers.push)
+addEventListener('notificationclick', libs.event_handlers.notificationClick)
