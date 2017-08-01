@@ -1,10 +1,9 @@
 importScripts('https://www.gstatic.com/firebasejs/3.9.0/firebase-app.js')
 importScripts('https://www.gstatic.com/firebasejs/3.9.0/firebase-messaging.js')
 
-firebase.initializeApp({
-  apiKey: 'AAAAUP0jK_k:APA91bEcrnG850PQpqJO0qoGR_HrE0fsrWv2EOkvJlIhSzlcsQ9JOIfu7ADL2_pMsQIw7gIU18tzX0u-ZBoTbUR3IMrVag0AUJOsnN4bLSm09lZHcI5CiRAXfni1La6lJTQlMwy7xBtr',
-  messagingSenderId: '347844324345'
-})
+const firebase_config = require('static-module-firebase-config')()
+
+firebase.initializeApp(firebase_config)
 
 const messaging = firebase.messaging()
 

@@ -8,8 +8,8 @@ var service_worker_path = '/chrome_push_notification/fcm/sw.js'
   , cpn_notify_button = $('.cpn-notify-button')
   , error_message = $('.cpn-error-message')
   , firebase_config = {
-      apiKey: 'AAAAUP0jK_k:APA91bEcrnG850PQpqJO0qoGR_HrE0fsrWv2EOkvJlIhSzlcsQ9JOIfu7ADL2_pMsQIw7gIU18tzX0u-ZBoTbUR3IMrVag0AUJOsnN4bLSm09lZHcI5CiRAXfni1La6lJTQlMwy7xBtr',
-      messagingSenderId: '347844324345'
+      apiKey: '{{ api_key }}',
+      messagingSenderId: '{{ gcm_sender_id }}'
     }
 ;
 
