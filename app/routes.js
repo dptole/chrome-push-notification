@@ -25,6 +25,7 @@ module.exports = app => {
       fcm_sw: {
         url: '/chrome_push_notification/fcm/sw.js',
         parse: (request, response, next) => {
+          response.setHeader('content-type', 'text/javascript')
           fs.createReadStream(path.join(__dirname, '/../views/static/', request.url)).pipe(
             staticModule({
               'static-module-firebase-config': _ => JSON.stringify({

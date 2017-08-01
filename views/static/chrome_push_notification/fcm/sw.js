@@ -3,7 +3,10 @@ importScripts('https://www.gstatic.com/firebasejs/3.9.0/firebase-messaging.js')
 
 const firebase_config = require('static-module-firebase-config')()
 
-firebase.initializeApp(firebase_config)
+firebase.initializeApp({
+  messagingSenderId: firebase_config.messaging_sender_id,
+  apiKey: firebase_config.api_key
+})
 
 const messaging = firebase.messaging()
 
@@ -11,6 +14,7 @@ const libs = {
   httpsRegex: /^https:\/\//i,
   last_push_event: null,
   last_notificationclick_event: null,
+  last_activate_event: null,
   ensureHTTPSURL(url) {
     return libs.httpsRegex.test(url) ? url : 'https://firebase.google.com/_static/images/firebase/touchicon-180.png'
   },
@@ -129,9 +133,14 @@ const libs = {
         libs.notificationClickBehavior(libs.parseJSON(event.notification.tag).parsed)
       else if(libs.hasCurrentEventClickAction())
         libs.notificationClickBehavior({type: 'click-action', url: libs.getCurrentEventClickAction()})
+    },
+    activate(event) {
+      libs.last_activate_event = event
+      skipWaiting()
     }
   }
 }
 
 addEventListener('push', libs.event_handlers.push)
 addEventListener('notificationclick', libs.event_handlers.notificationClick)
+addEventListener('activate', libs.event_handlers.activate)
