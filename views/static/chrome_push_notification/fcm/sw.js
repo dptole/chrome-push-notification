@@ -12,9 +12,14 @@ const messaging = firebase.messaging()
 
 const libs = {
   httpsRegex: /^https:\/\//i,
-  last_push_event: null,
-  last_notificationclick_event: null,
-  last_activate_event: null,
+  events: [],
+
+  getLastEvent: type => {
+    const filtered_events = libs.events.filter(event => event.type === type)
+    return filtered_events.length ? filtered_events[filtered_events.length - 1] : void 0
+  },
+  getLastPushEvent: _ => libs.getLastEvent('push'),
+
   ensureHTTPSURL(url) {
     return libs.httpsRegex.test(url) ? url : 'https://firebase.google.com/_static/images/firebase/touchicon-180.png'
   },
@@ -97,22 +102,26 @@ const libs = {
       clients.openWindow(action.url)
   },
   hasCurrentEventClickAction() {
-    if(!(libs.last_push_event && libs.last_push_event.data))
+    if(!(libs.getLastPushEvent() && libs.getLastPushEvent().data))
       return false
-    const json = libs.last_push_event.data.json()
+    const json = libs.getLastPushEvent().data.json()
     return json && json.data && libs.httpsRegex.test(json.data.click_action)
   },
   getCurrentEventClickAction() {
-    if(!(libs.last_push_event && libs.last_push_event.data))
+    if(!(libs.getLastPushEvent() && libs.getLastPushEvent().data))
       return ''
-    const json = libs.last_push_event.data.json()
+    const json = libs.getLastPushEvent().data.json()
     return json && json.data && libs.httpsRegex.test(json.data.click_action) && json.data.click_action
+  },
+  addEvent(event) {
+    event.time = new Date
+    libs.events.push(event)
   },
   event_handlers: {
     push(event) {
       //@TODO notify server that the message was received.
-      libs.last_push_event = event
-      console.log('push event', event)
+      console.log('Push event', event)
+      libs.addEvent(event)
       event.waitUntil(
         libs.receiveNotificationBehavior(event.data.json()).catch(error => {
           console.log('Error handling the notification')
@@ -124,8 +133,8 @@ const libs = {
     },
     notificationClick(event) {
       //@TODO notify server that the notification was clicked.
-      libs.last_notificationclick_event = event
-      console.log('notificationClick event', event)
+      console.log('NotificationClick event', event)
+      libs.addEvent(event)
       event.notification.close()
       if(libs.isValidAction(event.action))
         libs.notificationClickBehavior(libs.parseJSON(event.action).parsed)
@@ -134,8 +143,14 @@ const libs = {
       else if(libs.hasCurrentEventClickAction())
         libs.notificationClickBehavior({type: 'click-action', url: libs.getCurrentEventClickAction()})
     },
+    install(event) {
+      console.log('Install event', event)
+      libs.addEvent(event)
+      skipWaiting()
+    },
     activate(event) {
-      libs.last_activate_event = event
+      console.log('Activate event', event)
+      libs.addEvent(event)
       skipWaiting()
     }
   }
@@ -144,3 +159,4 @@ const libs = {
 addEventListener('push', libs.event_handlers.push)
 addEventListener('notificationclick', libs.event_handlers.notificationClick)
 addEventListener('activate', libs.event_handlers.activate)
+addEventListener('install', libs.event_handlers.install)
