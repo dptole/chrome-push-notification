@@ -29,7 +29,6 @@ module.exports = app => {
           fs.createReadStream(path.join(__dirname, '/../views/static/', request.url)).pipe(
             staticModule({
               'static-module-firebase-config': _ => JSON.stringify({
-                api_key: app.env.api_key,
                 messaging_sender_id: app.env.manifest_file.gcm_sender_id
               })
             })
@@ -58,7 +57,6 @@ module.exports = app => {
         '/chrome_push_notification/fcm/': [
           (request, response) => {
             response.render('fcm', {
-              api_key: app.env.api_key,
               gcm_sender_id: app.env.manifest_file.gcm_sender_id
             })
           }

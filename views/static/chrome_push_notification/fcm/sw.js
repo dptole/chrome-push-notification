@@ -4,8 +4,7 @@ importScripts('https://www.gstatic.com/firebasejs/3.9.0/firebase-messaging.js')
 const firebase_config = require('static-module-firebase-config')()
 
 firebase.initializeApp({
-  messagingSenderId: firebase_config.messaging_sender_id,
-  apiKey: firebase_config.api_key
+  messagingSenderId: firebase_config.messaging_sender_id
 })
 
 const messaging = firebase.messaging()
