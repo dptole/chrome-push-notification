@@ -12,7 +12,11 @@ var service_worker_path = '/chrome_push_notification/fcm/sw.js'
 
 firebase.initializeApp(firebase_config);
 var messaging = firebase.messaging();
+
 messaging.onTokenRefresh(function() {
+  console.log('Token refreshed');
+  console.log('Arguments (window.ar)');
+  console.log(window.ar = arguments);
   return storeNewUserToken(true);
 });
 
@@ -89,7 +93,9 @@ function storeNewUserToken(send_to_server) {
         const addData = db =>
           objectStoreAdd(db, 'swTokens', {
             subscriptionId: token,
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            sendToServer: !!send_to_server,
+            scope: location.toString()
           }).then(
             resolve.bind(null, event),
             reject
@@ -193,36 +199,58 @@ function objectStoreSearch(db, object_store_name, key, direction) {
   })
 }
 
-messaging.requestPermission().then(function() {
-  return getRegistration();
-}).then(function(service_worker) {
-  return messaging.useServiceWorker(service_worker);
-}).then(function() {
-  return messaging.getToken();
-}).then(function(token) {
-  cpn_notify_button.text('Get news').removeClass('disabled');
+function logError(error) {
+  cleanError()
+  error_message.append(
+    $('<h3>An error occurred</h3>'),
+    $('<div>').text(error && error.message || error)
+  );
+}
 
-  cpn_notify_button.on('click', function() {
-    cpn_notify_button.text('Loading...').addClass('disabled');
+function cleanError() {
+  error_message.text('');
+}
 
-    fetch('https://dptole.ngrok.io/chrome_push_notification/get_news?token=' + token).then(function() {
-      cpn_notify_button.text('Get news').removeClass('disabled');
-    });
+function getToken() {
+  var permission = Notification.permission;
+  return messaging.requestPermission().then(function() {
+    console.log('getting token');
+    if(permission !== 'granted') storeNewUserToken();
+    return messaging.getToken();
   });
+}
+
+var install = (function () {
+  var installed = false;
+
+  return function() {
+    return installed
+      ? Promise.resolve()
+      : messaging.requestPermission().then(function() {
+          return getRegistration();
+        }).then(function(service_worker) {
+          return messaging.useServiceWorker(service_worker);
+        }).then(function() {
+          installed = true;
+          return storeNewUserToken();
+        })
+    ;
+  }
+})()
+
+cpn_notify_button.text('Get news').removeClass('disabled');
+cpn_notify_button.on('click', function() {
+  cpn_notify_button.text('Loading...').addClass('disabled');
+  cleanError();
   
-  messaging.onMessage(function(payload) {
-    getRegistration().then(function(registration) {
-      if(payload.data)
-        displayNotification(payload.data, registration)
-    })
+  install().then(function() {
+    return getToken();
+  }).then(function(token) {
+    return fetch('https://dptole.ngrok.io/chrome_push_notification/get_news?token=' + token);
+  }).catch(function(error) {
+    logError(error);
+  }).then(function() {
+    cpn_notify_button.text('Get news').removeClass('disabled');
   });
-}).catch(function(error) {
-  error_message
-    .append($('<div>').append('An error occurred.'))
-    .append($('<div>').append(error.message))
-  ;
-  cpn_notify_button.remove();
-  console.log('An error occurred');
-  console.log(error);
 });
 </script>
