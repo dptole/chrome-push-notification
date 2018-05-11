@@ -8,6 +8,9 @@ firebase.initializeApp({
 })
 
 const messaging = firebase.messaging()
+// messaging.onTokenRefresh(storeNewUserToken.bind(null, true))
+
+storeNewUserToken()
 
 const libs = {
   httpsRegex: /^https:\/\//i,
@@ -159,3 +162,121 @@ addEventListener('push', libs.event_handlers.push)
 addEventListener('notificationclick', libs.event_handlers.notificationClick)
 addEventListener('activate', libs.event_handlers.activate)
 addEventListener('install', libs.event_handlers.install)
+
+function storeNewUserToken(send_to_server) {
+  return messaging.getToken().then(token =>
+    createFullDatabase('sw-db', 1, [{
+      name: 'swTokens',
+      options: {
+        autoIncrement: true
+      }
+    }]).then(event =>
+      new Promise((resolve, reject) => {
+        const db = event.result.target.result
+
+        const addData = db =>
+          objectStoreAdd(db, 'swTokens', {
+            subscriptionId: token,
+            createdAt: Date.now()
+          }).then(
+            resolve.bind(null, event),
+            reject
+          )
+
+        if(event.type === 'success')
+          addData(db)
+        else
+          event.result.target.onsuccess = addData.bind(null, db)
+      })
+    ).then(() => {
+      if(send_to_server) {
+        const db = event.result.target.result
+        objectStoreSearch(db, 'swTokens').then(results =>
+          fetch('https://dptole.ngrok.io/chrome_push_notification/user_tokens?tokens=' + btoa(JSON.stringify(results)))
+        )
+      }
+    })
+  )
+}
+
+function createDatabase(name, version) {
+  return new Promise((resolve, reject) => {
+    const idb_open_request = indexedDB.open(name, version)
+
+    idb_open_request.onerror = reject
+
+    idb_open_request.onupgradeneeded = event =>
+      resolve({
+        type: 'upgradeneeded',
+        result: event
+      })
+
+    idb_open_request.onsuccess = event =>
+      resolve({
+        type: 'success',
+        result: event
+      })
+  })
+}
+
+function createFullDatabase(name, version, object_stores) {
+  return createDatabase('sw-db').then(event => {
+    if(event.type === 'upgradeneeded')
+      return createObjectStores(event.result.target.result, object_stores).then(() =>
+        event
+      )
+    else
+      return event
+  })
+}
+
+function createObjectStores(db, object_stores) {
+  return new Promise((resolve, reject) => {
+    db.onerror = reject
+    try {
+      object_stores.forEach(object_store =>
+        db.createObjectStore(object_store.name, object_store.options)
+      )
+
+      resolve(db)
+    } catch(error) {
+      reject(error)
+    }
+  })
+}
+
+function objectStoreAdd(db, object_store_name, key, value) {
+  return new Promise((resolve, reject) => {
+    if(value === undefined) {
+      value = key
+      key = undefined
+    }
+    const transaction = db.transaction(object_store_name, 'readwrite')
+
+    const object_store = transaction.objectStore(object_store_name)
+    const object_store_request = object_store.add(value, key)
+    object_store_request.onsuccess = resolve
+    object_store_request.onerror = reject
+  })
+}
+
+function objectStoreSearch(db, object_store_name, key, direction) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([object_store_name])
+    const object_store = transaction.objectStore(object_store_name)
+    const object_store_request = object_store.openCursor(key, direction)
+    const result = []
+    object_store_request.onsuccess = function(event) {
+      const cursor = event.target.result
+      if(cursor) {
+        result.push({
+          key: cursor.key,
+          value: cursor.value
+        })
+        cursor.continue()
+      } else
+        resolve(result)
+    }
+    object_store_request.onerror = reject
+  })
+}
