@@ -8,7 +8,6 @@ firebase.initializeApp({
 })
 
 const messaging = firebase.messaging()
-// messaging.onTokenRefresh(storeNewUserToken.bind(null, true))
 
 storeNewUserToken()
 
