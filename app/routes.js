@@ -63,9 +63,13 @@ module.exports = app => {
         ],
         '/chrome_push_notification/gcm/': [
           (request, response) => {
+            response.redirect(303, '/chrome_push_notification/fcm/')
+
+            return; // Is it still supported?
             response.render('gcm', {
               service_worker_url: routes.statics.sw.url,
               notification_icon: app.package.config.notification_icon,
+              vapid_key: app.env.vapid_key,
             })
           }
         ],
@@ -82,7 +86,7 @@ module.exports = app => {
         ],
         '/chrome_push_notification/': [
           (request, response) => {
-            response.redirect(302, '/chrome_push_notification/gcm/')
+            response.redirect(303, '/chrome_push_notification/fcm/')
           }
         ]
       },

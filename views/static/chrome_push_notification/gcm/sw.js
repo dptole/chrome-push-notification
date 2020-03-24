@@ -5,7 +5,7 @@ self.addEventListener('push', function(event) {
     self.registration.pushManager.getSubscription().then(function(subscription) {
       return self.registration.showNotification('Here it is!', {
         body: 'Enjoy your ' + orders[subscription.endpoint] + '.',
-        icon: 'https://assets-cdn.github.com/favicon.ico'
+        icon: 'https://avatars3.githubusercontent.com/u/3951114'
       });
     })
   );
@@ -30,19 +30,19 @@ self.addEventListener('notificationclick', function(event) {
         if(response.status !== 202)
           return self.registration.showNotification('Ops!', {
             body: 'Our waiter is busy at the moment, wait a little bit please.',
-            icon: 'https://assets-cdn.github.com/favicon.ico'
+            icon: 'https://avatars3.githubusercontent.com/u/3951114'
           });
         orders[subscription.endpoint] = product;
         return self.registration.showNotification('As you wish!', {
           body: message,
-          icon: 'https://assets-cdn.github.com/favicon.ico'
+          icon: 'https://avatars3.githubusercontent.com/u/3951114'
         });
       });
     }).catch(function(error) {
       console.log('Error', error);
       return self.registration.showNotification('Ops!', {
         body: 'I forgot what you have asked!',
-        icon: 'https://assets-cdn.github.com/favicon.ico'
+        icon: 'https://avatars3.githubusercontent.com/u/3951114'
       });
     })
   );

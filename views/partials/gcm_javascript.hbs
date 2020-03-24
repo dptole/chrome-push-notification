@@ -209,7 +209,8 @@
     , cpn_error_message = document.querySelector('.cpn-error-message')
     , cpn
     , subscription_options = {
-        userVisibleOnly: true
+        userVisibleOnly: true,
+        applicationServerKey: '{{ vapid_key }}'
       }
 }()
 </script>
